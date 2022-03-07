@@ -36,9 +36,9 @@ user_input = int(input("pick a number: "))
 n = user_input
 
 if n > x:
-    print(f"{n} is greater than {x} ") #add f in otherwise {n} and {x} will just print
+    print(f"{n} is greater than {x}") #add f in otherwise {n} and {x} will just print
 else:
-    print("none")
+    print("None", f"{n} is not greater than {x} ")
     
 
 print(99 > 5) #True
@@ -50,4 +50,5 @@ print(False < True) #True
 
 print('AAA' > 'BBB') #False
 print('AAB' > 'AAA') #True
-print('aaa' > 'AAA') #True '''
+print('aaa' > 'AAA') #True 
+

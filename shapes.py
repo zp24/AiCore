@@ -1,5 +1,3 @@
-
-
 cuboid = {"height" : 25/7, "width" : 25/2, "length": 35}
 h = cuboid["height"]
 w = cuboid ["width"]
@@ -65,4 +63,4 @@ print("Hello"+"World")
 #print("This" in str_test) #True
 
 #print ("A">"a") #False
-#print("Yes">"No") #True
+#print("Yes">"No") #True    

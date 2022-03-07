@@ -23,3 +23,15 @@ elif 30 < x < 39.9:
     print(f"You're BMI is {x}. You're in the obese range")
 else:
     print("BMI not calculated")
+'''
+def in_range(): #testing outside of functions.ipynb script
+    n = 5
+    lower_bound = 0
+    upper_bound = 10
+
+    if lower_bound< n < upper_bound:
+        return f" {n} is between {lower_bound} and {upper_bound}"
+        
+    else:
+        return f"{n} is NOT between {lower_bound} and {upper_bound}"
+print(in_range()) #need to print otherwise it will not show in terminal'''
