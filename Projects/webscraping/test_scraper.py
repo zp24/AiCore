@@ -6,7 +6,7 @@ from webscraper import Scraper
 class TestScraper(unittest.TestCase): #gives access to testing capabilities within class
     def setUp(self):
         self.scraper = Scraper() #navigate to url
-
+    '''
     def test_searchbar(self):
         text = "kingdom hearts"
         result = self.scraper.search_bar(text)
@@ -21,18 +21,27 @@ class TestScraper(unittest.TestCase): #gives access to testing capabilities with
         cookie_id = '//*[@id="onetrust-accept-btn-handler"]'
         result = self.scraper.accept_cookies(cookie_id)
         self.assertIsNone(result, '//*[@id="onetrust-accept-btn-handler"]') #returns None
-
+    '''
     def test_find_container(self):
-        container_id = '//div[@class="catalogue row"]'
-        result = self.scraper.accept_cookies(container_id)
-        self.assertIsNone(result, '//div[@class="catalogue row"]') #returns None
+        text = "final fantasy"
+        self.scraper.search_bar(text)
+        container = self.scraper.find_container()
+        #//*[@id="slick-slide03"]/a
+        result = container.text[0:18]
+        self.assertIn(result, "FINAL FANTASY VIII - REMASTERED") #assertEqual will return FAILED test
+        
+    #def test_find_links(self):
+     #   link = './/a'
+      #  result = self.scraper.collect_page_links(link)
+       # self.assertIn(result, './/a') #strings must match for test to run successfully
+        #get_attribute("href")
 
         
         
 if __name__ == '__main__':
     unittest.main()
 
-#python -m unittest test_scraper.py#
+#python -m unittest test_scraper.py
 '''
 My Blueprint to running a successful Unittest: 
 

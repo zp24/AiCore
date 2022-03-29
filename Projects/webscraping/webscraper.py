@@ -12,7 +12,6 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 
 class Scraper:
-
     '''
     This class is a scraper that can be used to browse different websites
 
@@ -32,11 +31,12 @@ class Scraper:
         try:
             self.driver.get(url)
             #driver = Chrome() #specify location of chromedriver if downloading webdriver
-            
             print("Webpage loaded successfully")
         except NoSuchElementException:
             print("Webpage not loaded - please check")
+
         self.driver.maximize_window() #maximise window upon loading
+
     #click accept cookies button on webpage
     def accept_cookies(self, xpath: str = '//*[@id="onetrust-accept-btn-handler"]'): 
         '''
@@ -152,7 +152,17 @@ class Scraper:
 
         return self.driver.find_element(By.XPATH, xpath)
     
-    #def collect_page_links(self)
+    def collect_page_links(self, xpath : str = ".//a"):
+        self.container = self.find_container()
+        #find many elements that correspond with the XPath - they have to be direct children of the container
+        #i.e. one level below the container
+        self.list_products = self.container.find_elements(By.XPATH, xpath)
+        self.link_list = []
+        for product in self.list_products: #iterate through each product
+            #print(product.text) #print each product in text format
+            self.link_list.append(product.get_attribute("href"))
+        
+        return self.link_list
 
 if __name__ == "__main__": #will only run methods below if script is run directly
     scraper = Scraper() #call scraper class
