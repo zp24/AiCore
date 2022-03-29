@@ -21,3 +21,13 @@ The data was easily stored in their respective dictionaries, but there were a fe
 Additional code was also required to be able to dump the UUID numbers into the json file. Fortunately the code was readily available on StackOverflow, so it was copied and pasted in.
 
 The code was reviewed and modified where possible, before the Scraper class was moved to a .py file and imported into the newly created .ipynb (original script has been retained just in case older code is required).
+
+Milestone 4
+
+This milestone was comprised of documenting and testing the webscraper to help understand what each method in the Scraper class was for, their parameters and what would be returned, and to test each method in a separate script to ensure everything was working properly.
+
+Documenting was relatively simple, but the difficulty experienced during this milestone came from unit testing; given that each method was essentially being tested anyway in the relevant script(s), it was hard to understand why testing would also be required, otherwise it was quite straightforward to create tests for the public methods to check they were working properly.
+
+Although all the tests are passing, they can be improved in some parts.
+
+The Scraper class was also modified to include the method that would add links to a list (to be iterated through in the webpage (Square Enix) script); this was a sensible step to take given links would be accessed for any website from which data would be scraped, thereby completely separating all the generic methods from the custom methods.
