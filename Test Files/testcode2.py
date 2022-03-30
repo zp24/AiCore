@@ -1,4 +1,5 @@
 	
+import unittest
 import random
 
 #create a list of hangman words
@@ -29,6 +30,7 @@ while display != wordChosen:
   #guess = guess.lower()
   #Add the players guess to the list of used letters
   used.extend(guess)
+  attempts +=1
   print ("Attempts: ")
   print (attempts)
   
@@ -44,6 +46,8 @@ while display != wordChosen:
       print("try again", f"lives remaining: {lives}")
       print("Used letters: ")
       print(used)
+      print ("Attempts: ")
+      print(attempts)
       if lives == 0:
             print("game over")
             break
@@ -55,6 +59,8 @@ while display != wordChosen:
       
   #Print the string with guessed letters (with spaces in between))
   print(" ".join(display))
-  attempts = attempts + 1
+  #attempts +=1
 if display == wordChosen:
     print("Well done, you guessed right!")
+
+unittest.main()
