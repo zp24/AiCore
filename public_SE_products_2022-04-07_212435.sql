@@ -1,0 +1,1 @@
+SELECT * FROM "SE_products" LIMIT 100;

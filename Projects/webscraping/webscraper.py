@@ -1,7 +1,7 @@
 '''
 This is a docstring for the module
 '''
-
+import os
 import selenium
 from selenium.webdriver import Chrome
 from webdriver_manager.chrome import ChromeDriverManager #installs Chrome webdriver
@@ -10,6 +10,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
+import boto3
+from sqlalchemy import create_engine
+import urllib.request
+import tempfile #temporary directory - to be removed after all operations have finished
 
 class Scraper:
     '''
@@ -35,7 +39,21 @@ class Scraper:
         except NoSuchElementException:
             print("Webpage not loaded - please check")
 
-        self.driver.maximize_window() #maximise window upon loading
+        self.driver.maximize_window() #maximise window upon loading webpage
+
+        DATABASE_TYPE = 'postgresql'
+        DBAPI = 'psycopg2' #database API - API to connect Python with database
+        #use AWS details to connect database
+        HOST = os.environ.get('DB_HOST') #endpoint
+        USER = os.environ.get('DB_USER')
+        PASSWORD = os.environ.get('DB_PASS')
+        DATABASE = 'postgres'
+        PORT = 5432
+
+        self.engine = create_engine(f'{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}')
+        self.client = boto3.client('s3')
+
+        self.bucket = os.environ.get('DB_BUCKET')
 
     #click accept cookies button on webpage
     def accept_cookies(self, xpath: str = '//*[@id="onetrust-accept-btn-handler"]'): 
@@ -149,13 +167,41 @@ class Scraper:
         xpath: str
             locate the results container
         '''
+        #### Following code block will only scroll through results page once ####
+        SCROLL_PAUSE_TIME = 2
 
+        # Get scroll height
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+
+        while True:
+            # Scroll down to bottom
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+            # Wait to load page
+            time.sleep(SCROLL_PAUSE_TIME)
+
+            # Calculate new scroll height and compare with last scroll height
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+        
         return self.driver.find_element(By.XPATH, xpath)
     
     def collect_page_links(self, xpath : str = ".//a"):
+        '''
+        This is to find links in the search results container 
+        Parameters
+        -------
+        xpath: str
+            locate the links in the results container
+        '''
         self.container = self.find_container()
         #find many elements that correspond with the XPath - they have to be direct children of the container
         #i.e. one level below the container
+        time.sleep(5)
+        self.driver.execute_script(f"window.scrollTo(0,document.body.scrollHeight);") #scroll straight to bottom of page
+        time.sleep(5)
         self.list_products = self.container.find_elements(By.XPATH, xpath)
         self.link_list = []
         for product in self.list_products: #iterate through each product
@@ -163,10 +209,44 @@ class Scraper:
             self.link_list.append(product.get_attribute("href"))
         
         return self.link_list
+    
+    def find_images(self, container, xpath : str = '//figure[@class="product-boxshot-container"]'):
+        #//figure[@class="product-boxshot-container hover-boxshot"]
+        '''
+        This is to find the product images in the search results container 
+        Parameters
+        -------
+        xpath: str
+            locate the images in the results container and their respective links from srcset
+        '''
+        list_div = container.find_elements(By.XPATH, '//img[@class="product-boxshot lazyloaded"]')
+        src_list = []
+        for product in list_div:
+            image_container = product.find_element(By.XPATH, xpath)
+            src = image_container.find_element(By.XPATH, './/img').get_attribute('srcset')
+            r = src.split("1x") #split src as srcset contains two links by default
+            src_list.append(r[0]) #obtain image from 1st link only
+        return src_list
+    
+    def upload_images(self, src):
+        '''
+        This is to save images to a temporary directory and upload them to the s3 bucket 
+        Parameters
+        -------
+        src: str
+            product image links obtained in find_images()
+        '''
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            for i in range(len(src)):
+                urllib.request.urlretrieve(src[i], tmpdirname + f'/image_{i}.png')
+                self.client.upload_file(tmpdirname + f'/image_{i}.png', self.bucket, f'image_{i}.png')
+        #//img[@class = "product-boxshot secondary-boxshot lazyloaded"]
+    
+    
 
 if __name__ == "__main__": #will only run methods below if script is run directly
     scraper = Scraper() #call scraper class
     scraper.accept_cookies()
     scraper.navigate()
-    scraper.search_bar("final fantasy") #add search keyword here
+    scraper.search_bar('final fantasy') #add search keyword here
     
