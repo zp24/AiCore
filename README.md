@@ -31,3 +31,15 @@ Documenting was relatively simple, but the difficulty experienced during this mi
 Although all the tests are passing, they can be improved in some parts.
 
 The Scraper class was also modified to include the method that would add links to a list (to be iterated through in the webpage (Square Enix) script); this was a sensible step to take given links would be accessed for any website from which data would be scraped, thereby completely separating all the generic methods from the custom methods.
+
+Milestone 5
+
+This milestone required retrieving previously saved data and uploading it to an s3 bucket and sql databse. Because only half of the data was stored in a json file (product data only) at this point, it was necessary to scrape the data again in order to save the image data into a separate json file, otherwise the images would be linked to the wrong product when trying to retrieve them from the images folder. Whilst scraping this data again, the naming conventions in the dictionaries were edited so that the pandas dataframes containing the product and image data could be merged and uploaded into a single sql table. It was easier to merge the data at this stage rather than when they were uploaded into sql tables.
+
+In addition, parts of webscraper.py and Square_Enix.ipynb needed amending in order to accommodate for other methods for a more robust scraping process, such as implementing a method which would keep scrolling through the results page until the end so more products could be cycled through, adding if statements to pass any product pages which required the user to input their date of birth as some data could not be scraped properly if not at all (e.g. product image and price), and locating and amending the relevant xpath for the image link on the product page. A lot of testing was needed to see if some methods needed to be in their own cells in the latter script for example, so some backtracking was required before the milestone could be completed.
+
+Further methods were implemented so that some data could be scraped just from the results page, particularly if the boto3_upload.ipynb script was only being used. Moreover, a couple more test methods were added to test_scraper.py to ensure the correct data/xpath was being looked at on the results page.
+
+Once this was all implemented and tested, any sensitive data was stored locally before pushing to the repository.
+
+This milestone was quite time consuming, but the time was worth the results achieved at each stage. A lot was learned in the process, and the steps taken ensure a lot of time is saved when scraping.
