@@ -167,8 +167,8 @@ class Scraper:
         xpath: str
             locate the results container
         '''
-        #### Following code block will only scroll through results page once ####
-        SCROLL_PAUSE_TIME = 2
+        #### Following code block will only scroll through results page once if there is another method being called in same cell of Jupyter Notebook ####
+        SCROLL_PAUSE_TIME = 3
 
         # Get scroll height
         last_height = self.driver.execute_script("return document.body.scrollHeight")
@@ -194,13 +194,11 @@ class Scraper:
         Parameters
         -------
         xpath: str
-            locate the links in the results container
+            locate the links in the results container which will be stored in self.link_list
         '''
         self.container = self.find_container()
         #find many elements that correspond with the XPath - they have to be direct children of the container
         #i.e. one level below the container
-        time.sleep(5)
-        self.driver.execute_script(f"window.scrollTo(0,document.body.scrollHeight);") #scroll straight to bottom of page
         time.sleep(5)
         self.list_products = self.container.find_elements(By.XPATH, xpath)
         self.link_list = []
@@ -210,7 +208,42 @@ class Scraper:
         
         return self.link_list
     
-    def find_images(self, container, xpath : str = '//figure[@class="product-boxshot-container"]'):
+    def check_duplicates(self):
+        '''
+        This is to check whether any duplicate links are in self.link_list 
+        by adding elements one by one to list and while adding check if it is duplicated or not
+        '''
+        self.select_list = self.link_list
+        setOfElems = set()
+        for elem in self.link_list:
+            if elem in setOfElems:
+                return True
+            else:
+                setOfElems.add(elem)         
+        return False
+        
+    
+    def check_duplicates1(self):
+        '''
+        This is to confirm whether there are any duplicates and, if so, remove the duplicates and update the list accordingly
+        '''
+        self.result = self.check_duplicates()
+        if self.result:
+            print('Yes, list contains duplicates')
+            '''
+            create dictionary from list then remove any duplicates before converting back into list 
+            - order retained
+            '''
+            self.link_list = list(dict.fromkeys(self.link_list))
+            print("Duplicates removed")
+        else:
+            print('No duplicates found in list')
+
+        return self.link_list
+    
+    
+    def find_images(self, container, 
+                    xpath : str = '//figure[@class="product-boxshot-container"]'):
         #//figure[@class="product-boxshot-container hover-boxshot"]
         '''
         This is to find the product images in the search results container 
