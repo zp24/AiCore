@@ -1,5 +1,5 @@
 import unittest
-from webscraper import Scraper 
+from scraper.webscraper import Scraper 
 
 #make sure the method to be tested contains a return function
 '''

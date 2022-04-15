@@ -9,6 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver import ChromeOptions
+from typing import Optional
 import time
 import boto3
 from sqlalchemy import create_engine
@@ -30,8 +32,16 @@ class Scraper:
     '''
 
     #load webpage in initialiser
-    def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/"): #default url
-        self.driver = Chrome(ChromeDriverManager().install()) 
+    def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/", 
+                options: Optional[ChromeOptions] = None): #default url
+        self.driver = Chrome(ChromeDriverManager().install(), options=options) 
+        options = ChromeOptions()
+        options.add_argument("--headless") 
+        options.add_argument("--no-sandbox") 
+        options.add_argument("--disable-dev-shm-usage") 
+        options.add_argument("--remote-debugging-port=9222") 
+        options.add_argument("window-size=1920,1080") 
+
         try:
             self.driver.get(url)
             #driver = Chrome() #specify location of chromedriver if downloading webdriver
@@ -41,14 +51,14 @@ class Scraper:
 
         self.driver.maximize_window() #maximise window upon loading webpage
 
-        DATABASE_TYPE = 'postgresql'
-        DBAPI = 'psycopg2' #database API - API to connect Python with database
-        #use AWS details to connect database
+        DATABASE_TYPE = os.environ.get('DB_DATABASE_TYPE')
+        DBAPI = os.environ.get('DB_DBAPI') #database API - API to connect Python with database
+        #use AWS details to connect database - saved in Environment Variables
         HOST = os.environ.get('DB_HOST') #endpoint
-        USER = os.environ.get('DB_USER')
+        USER = os.environ.get('DB_USER') #username
         PASSWORD = os.environ.get('DB_PASS')
-        DATABASE = 'postgres'
-        PORT = 5432
+        DATABASE = os.environ.get('DB_DATABASE')
+        PORT = os.environ.get('DB_PORT')
 
         self.engine = create_engine(f'{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}')
         self.client = boto3.client('s3')
