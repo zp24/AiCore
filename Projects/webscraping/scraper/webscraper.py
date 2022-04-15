@@ -61,6 +61,18 @@ class Scraper:
         PORT = os.environ.get('DB_PORT')
 
         self.engine = create_engine(f'{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}')
+        
+        #have user add aws credentials without accidentally sharing
+        #self.key_id = input("Enter your AWS key id: ")
+        #self.secret_key = input("Enter your AWS secret key: ")
+        #self.bucket_name = input("Enter your bucket name: ")
+        #self.region = input("Enter your region: ")
+        '''self.client = boto3.client('s3', 
+            aws_access_key_id = self.key_id,
+            aws_secret_access_key = self.secret_key,
+            region_name = self.region)
+        '''
+        
         self.client = boto3.client('s3')
 
         self.bucket = os.environ.get('DB_BUCKET')
