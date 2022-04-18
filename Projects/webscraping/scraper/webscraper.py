@@ -59,9 +59,10 @@ class Scraper:
             if headless:
                 options.add_argument("--headless")
                 self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
-                self.driver.get(url)
+                
             else:
                 self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
+            self.driver.get(url)
             #driver = Chrome() #specify location of chromedriver if downloading webdriver
             print("Webpage loaded successfully")
         except NoSuchElementException:
@@ -91,19 +92,19 @@ class Scraper:
         self.engine = create_engine(f'{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}')
         
         #have user add aws credentials without accidentally sharing
-        #self.key_id = input("Enter your AWS key id: ")
-        #self.secret_key = input("Enter your AWS secret key: ")
-        #self.bucket_name = input("Enter your bucket name: ")
-        #self.region = input("Enter your region: ")
-        '''self.client = boto3.client('s3', 
+        self.key_id = input("Enter your AWS key id: ")
+        self.secret_key = input("Enter your AWS secret key: ")
+        self.bucket = input("Enter your bucket name: ")
+        self.region = input("Enter your region: ")
+        self.client = boto3.client('s3', 
             aws_access_key_id = self.key_id,
             aws_secret_access_key = self.secret_key,
             region_name = self.region)
-        '''
         
-        self.client = boto3.client('s3')
+        
+        #self.client = boto3.client('s3')
         #self.bucket = os.environ.get('DB_BUCKET')
-        self.bucket = input("Enter bucket name: ")
+        #self.bucket = input("Enter bucket name: ")
 
     #click accept cookies button on webpage
     def accept_cookies(self, xpath: str = '//*[@id="onetrust-accept-btn-handler"]'): 
