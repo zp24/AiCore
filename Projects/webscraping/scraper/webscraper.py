@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver import ChromeOptions
+from selenium.webdriver.chrome.service import Service
 from typing import Optional
 import time
 import boto3
@@ -33,15 +34,25 @@ class Scraper:
 
     #load webpage in initialiser
     def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/", 
-                options: Optional[ChromeOptions] = None): #default url
-        self.driver = Chrome(ChromeDriverManager().install(), options=options) 
+                options: Optional[ChromeOptions] = None): #default url    
+        
         options = ChromeOptions()
-        options.add_argument("--headless") 
+        #options=options
+        #self.driver = Chrome(ChromeDriverManager().install(), options=options, executable_path='/usr/local/bin/chromedriver') 
+        self.driver = Chrome(options=options, executable_path='/usr/local/bin/chromedriver') 
         options.add_argument("--no-sandbox") 
-        options.add_argument("--disable-dev-shm-usage") 
+        #options.binary_location = '/usr/bin/google-chrome'
+        options.add_argument("--headless")
+        
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-setuid-sandbox") 
         options.add_argument("--remote-debugging-port=9222") 
+         
+        options.add_argument("start-maximized")
+        options.add_argument('--disable-gpu')
+        
         options.add_argument("window-size=1920,1080") 
-
+        
         try:
             self.driver.get(url)
             #driver = Chrome() #specify location of chromedriver if downloading webdriver
@@ -74,7 +85,6 @@ class Scraper:
         '''
         
         self.client = boto3.client('s3')
-
         self.bucket = os.environ.get('DB_BUCKET')
 
     #click accept cookies button on webpage
@@ -304,4 +314,5 @@ if __name__ == "__main__": #will only run methods below if script is run directl
     scraper.accept_cookies()
     scraper.navigate()
     scraper.search_bar('final fantasy') #add search keyword here
+    scraper.find_container()
     
