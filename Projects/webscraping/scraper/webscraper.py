@@ -34,15 +34,15 @@ class Scraper:
 
     #load webpage in initialiser
     def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/", 
-                options: Optional[ChromeOptions] = None): #default url    
+                options: Optional[ChromeOptions] = None, headless = False) -> None:  
+        
         
         options = ChromeOptions()
-        #options=options
-        #self.driver = Chrome(ChromeDriverManager().install(), options=options, executable_path='/usr/local/bin/chromedriver') 
-        self.driver = Chrome(options=options, executable_path='/usr/local/bin/chromedriver') 
+        
+        #add arguments before creating driver
         options.add_argument("--no-sandbox") 
-        #options.binary_location = '/usr/bin/google-chrome'
-        options.add_argument("--headless")
+        options.binary_location = '/usr/bin/google-chrome'
+        #options.add_argument("--headless")
         
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-setuid-sandbox") 
@@ -52,24 +52,41 @@ class Scraper:
         options.add_argument('--disable-gpu')
         
         options.add_argument("window-size=1920,1080") 
-        
+
+        self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
+
         try:
-            self.driver.get(url)
+            if headless:
+                options.add_argument("--headless")
+                self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
+                self.driver.get(url)
+            else:
+                self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
             #driver = Chrome() #specify location of chromedriver if downloading webdriver
             print("Webpage loaded successfully")
         except NoSuchElementException:
             print("Webpage not loaded - please check")
 
         self.driver.maximize_window() #maximise window upon loading webpage
-
-        DATABASE_TYPE = os.environ.get('DB_DATABASE_TYPE')
+        
+        '''DATABASE_TYPE = os.environ.get('DB_DATABASE_TYPE')
         DBAPI = os.environ.get('DB_DBAPI') #database API - API to connect Python with database
         #use AWS details to connect database - saved in Environment Variables
         HOST = os.environ.get('DB_HOST') #endpoint
         USER = os.environ.get('DB_USER') #username
         PASSWORD = os.environ.get('DB_PASS')
         DATABASE = os.environ.get('DB_DATABASE')
-        PORT = os.environ.get('DB_PORT')
+        PORT = os.environ.get('DB_PORT')'''
+
+        #to enter credentials, use '-it' between run and filename in terminal
+        DATABASE_TYPE = input("Enter Database Type: ")
+        DBAPI = input("Enter DBAPI: ") #database API - API to connect Python with database
+        #use AWS details to connect database - saved in Environment Variables
+        HOST = input("Enter endpoint: ") #endpoint
+        USER = input("Enter your username: ") #username
+        PASSWORD = input("Enter your password: ")
+        DATABASE = input("Enter Database: ")
+        PORT = input("Enter port: ")
 
         self.engine = create_engine(f'{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}')
         
@@ -85,7 +102,8 @@ class Scraper:
         '''
         
         self.client = boto3.client('s3')
-        self.bucket = os.environ.get('DB_BUCKET')
+        #self.bucket = os.environ.get('DB_BUCKET')
+        self.bucket = input("Enter bucket name: ")
 
     #click accept cookies button on webpage
     def accept_cookies(self, xpath: str = '//*[@id="onetrust-accept-btn-handler"]'): 
@@ -155,7 +173,7 @@ class Scraper:
         try:
             self.search = self.driver.find_element(By.XPATH, xpath1)
             self.search.send_keys(text)
-            print("Search keywords entered")
+            print(f"Search keywords entered - '{text}'")
             time.sleep(2)
         except NoSuchElementException:
             print("Cannot input keywords")
@@ -163,7 +181,7 @@ class Scraper:
         #submit input
         try:
             self.search = self.driver.find_element(By.XPATH, xpath2).click()
-            print("Submit search button clicked - redirected to results")
+            print(f"Submit search button clicked - redirected to results for {text}")
             time.sleep(2)
         except NoSuchElementException:
             print("Cannot submit search")
@@ -199,6 +217,7 @@ class Scraper:
         xpath: str
             locate the results container
         '''
+        print("Scrolling through results page")
         #### Following code block will only scroll through results page once if there is another method being called in same cell of Jupyter Notebook ####
         SCROLL_PAUSE_TIME = 3
 
@@ -207,6 +226,7 @@ class Scraper:
 
         while True:
             # Scroll down to bottom
+            
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
             # Wait to load page
@@ -228,6 +248,7 @@ class Scraper:
         xpath: str
             locate the links in the results container which will be stored in self.link_list
         '''
+        print("Collecting page links")
         self.container = self.find_container()
         #find many elements that correspond with the XPath - they have to be direct children of the container
         #i.e. one level below the container
@@ -238,6 +259,7 @@ class Scraper:
             #print(product.text) #print each product in text format
             self.link_list.append(product.get_attribute("href"))
         
+        print("Page links collected")
         return self.link_list
     
     def check_duplicates(self):
@@ -253,12 +275,12 @@ class Scraper:
             else:
                 setOfElems.add(elem)         
         return False
-        
     
     def check_duplicates1(self):
         '''
         This is to confirm whether there are any duplicates and, if so, remove the duplicates and update the list accordingly
         '''
+        print("Checking for duplicate links")
         self.result = self.check_duplicates()
         if self.result:
             print('Yes, list contains duplicates')
@@ -274,7 +296,7 @@ class Scraper:
         return self.link_list
     
     
-    def find_images(self, container, 
+    def find_images(self, 
                     xpath : str = '//figure[@class="product-boxshot-container"]'):
         #//figure[@class="product-boxshot-container hover-boxshot"]
         '''
@@ -284,13 +306,16 @@ class Scraper:
         xpath: str
             locate the images in the results container and their respective links from srcset
         '''
-        list_div = container.find_elements(By.XPATH, '//img[@class="product-boxshot lazyloaded"]')
+        print("Collecting product images")
+        self.container = self.find_container()
+        list_div = self.container.find_elements(By.XPATH, '//img[@class="product-boxshot lazyloaded"]')
         src_list = []
         for product in list_div:
             image_container = product.find_element(By.XPATH, xpath)
             src = image_container.find_element(By.XPATH, './/img').get_attribute('srcset')
             r = src.split("1x") #split src as srcset contains two links by default
             src_list.append(r[0]) #obtain image from 1st link only
+        print("Images collected")
         return src_list
     
     def upload_images(self, src):
@@ -315,4 +340,6 @@ if __name__ == "__main__": #will only run methods below if script is run directl
     scraper.navigate()
     scraper.search_bar('final fantasy') #add search keyword here
     scraper.find_container()
-    
+    scraper.collect_page_links()
+    scraper.check_duplicates1()
+    scraper.find_images()
