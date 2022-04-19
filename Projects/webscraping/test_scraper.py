@@ -50,7 +50,7 @@ class TestScraper(unittest.TestCase): #gives access to testing capabilities with
         text = "final fantasy"
         self.scraper.search_bar(text)
         container = self.scraper.find_container()
-        result = self.scraper.find_images(container=container) #images are stored in a list
+        result = self.scraper.get_images(container=container) #images are stored in a list
         
         self.assertIn('.jpg', result[5]) #find .jpg in selected image - all images in find_images are .jpg format
     

@@ -3,6 +3,7 @@ This is a docstring for the module
 '''
 import os
 import selenium
+from selenium import webdriver
 from selenium.webdriver import Chrome
 from webdriver_manager.chrome import ChromeDriverManager #installs Chrome webdriver
 from selenium.webdriver.common.by import By
@@ -18,6 +19,7 @@ from sqlalchemy import create_engine
 import urllib.request
 import tempfile #temporary directory - to be removed after all operations have finished
 from tqdm import tqdm
+from pathlib import Path
 
 class Scraper:
     '''
@@ -34,43 +36,19 @@ class Scraper:
     '''
 
     #load webpage in initialiser
-    def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/", 
-                headless = False):  
+    def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/", headless = True):  
         
-        
-        options = ChromeOptions()
-        
-        #add arguments before creating driver
-        #options.add_argument("--no-sandbox") 
-        #options.binary_location = '/usr/bin/google-chrome'
-        #options.add_argument("--headless")
-        
-        #options.add_argument("--disable-dev-shm-usage")
-        #options.add_argument("--disable-setuid-sandbox") 
-        #options.add_argument("--remote-debugging-port=9222") 
-         
-        #options.add_argument("start-maximized")
-        #options.add_argument('--disable-gpu')
-        
-        #options.add_argument("window-size=1920,1080") 
 
-        #self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
-        #self.driver = Chrome(ChromeDriverManager().install())
-        try:
-            if headless:
-                options.add_argument("--headless")
-                self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
-                
-            else:
-                self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
-            self.driver.get(url)
-            #driver = Chrome() #specify location of chromedriver if downloading webdriver
-            print("Webpage loaded successfully")
-        except NoSuchElementException:
-            print("Webpage not loaded - please check")
+        #to enter credentials, use '-it' between run and filename in terminal
+        DATABASE_TYPE = input("Enter Database Type: ")
+        DBAPI = input("Enter DBAPI: ") #database API - API to connect Python with database
+        #use AWS details to connect database - saved in Environment Variables
+        HOST = input("Enter endpoint: ") #endpoint
+        USER = input("Enter your username: ") #username
+        PASSWORD = input("Enter your password: ")
+        DATABASE = input("Enter Database: ")
+        PORT = input("Enter port: ")
 
-        self.driver.maximize_window() #maximise window upon loading webpage
-        
         '''DATABASE_TYPE = os.environ.get('DB_DATABASE_TYPE')
         DBAPI = os.environ.get('DB_DBAPI') #database API - API to connect Python with database
         #use AWS details to connect database - saved in Environment Variables
@@ -79,16 +57,6 @@ class Scraper:
         PASSWORD = os.environ.get('DB_PASS')
         DATABASE = os.environ.get('DB_DATABASE')
         PORT = os.environ.get('DB_PORT')'''
-
-        #to enter credentials, use '-it' between run and filename in terminal
-        '''DATABASE_TYPE = input("Enter Database Type: ")
-        DBAPI = input("Enter DBAPI: ") #database API - API to connect Python with database
-        #use AWS details to connect database - saved in Environment Variables
-        HOST = input("Enter endpoint: ") #endpoint
-        USER = input("Enter your username: ") #username
-        PASSWORD = input("Enter your password: ")
-        DATABASE = input("Enter Database: ")
-        PORT = input("Enter port: ")
 
         self.engine = create_engine(f'{DATABASE_TYPE}+{DBAPI}://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}')
         
@@ -100,8 +68,39 @@ class Scraper:
         self.client = boto3.client('s3', 
             aws_access_key_id = self.key_id,
             aws_secret_access_key = self.secret_key,
-            region_name = self.region)'''
+            region_name = self.region)
         
+        options = ChromeOptions()
+        #add arguments before creating driver
+        options.add_argument("--no-sandbox") 
+        #options.binary_location = '/usr/bin/google-chrome'
+        options.add_argument("--headless")
+                
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-setuid-sandbox") 
+        options.add_argument("--remote-debugging-port=9222") 
+                
+        options.add_argument("start-maximized")
+        options.add_argument('--disable-gpu')
+                
+        options.add_argument("window-size=1920,1080") 
+
+        #self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
+        #self.driver = Chrome(ChromeDriverManager().install())
+        try:
+            if headless:
+                options.add_argument("--headless")
+                self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
+                
+            else:
+                self.driver = Chrome(ChromeDriverManager().install()) #create driver
+            self.driver.get(url)
+            #driver = Chrome() #specify location of chromedriver if downloading webdriver
+            print("Webpage loaded successfully")
+        except NoSuchElementException:
+            print("Webpage not loaded - please check")
+
+        self.driver.maximize_window() #maximise window upon loading webpage
         
         #self.client = boto3.client('s3')
         #self.bucket = os.environ.get('DB_BUCKET')
@@ -132,7 +131,7 @@ class Scraper:
     def search_bar(self, text, xpath: str = './/a[@id="search-button"]', 
                     xpath1: str = '//*[@id="search-form-wrapper"]/form/div/input',
                     xpath2: str = './/button[@class="btn search-button-submit"]'): 
-        
+        self.text = text
         '''
         Look for and write something in search bar
 
@@ -174,8 +173,8 @@ class Scraper:
         #input keywords to search
         try:
             self.search = self.driver.find_element(By.XPATH, xpath1)
-            self.search.send_keys(text)
-            print(f"Search keywords entered - '{text}'")
+            self.search.send_keys(self.text)
+            print(f"Search keywords entered - '{self.text}'")
             time.sleep(2)
         except NoSuchElementException:
             print("Cannot input keywords")
@@ -183,12 +182,12 @@ class Scraper:
         #submit input
         try:
             self.search = self.driver.find_element(By.XPATH, xpath2).click()
-            print(f"Submit search button clicked - redirected to results for {text}")
+            print(f"Submit search button clicked - redirected to results for {self.text}")
             time.sleep(2)
         except NoSuchElementException:
             print("Cannot submit search")
 
-        return text #output to be returned from function
+        return self.text #output to be returned from function
         
     #navigate tabs - change id for games, merchandise or preorders
     def navigate(self, xpath: str = '//*[@id="merchandise"]'): 
@@ -207,7 +206,8 @@ class Scraper:
         time.sleep(2)
 
         return None
-        
+     
+
     
     def find_container(self, xpath: str = '//div[@class="catalogue row"]'):
         '''
@@ -219,28 +219,28 @@ class Scraper:
         xpath: str
             locate the results container
         '''
-        print("Scrolling through results page")
+        
         #### Following code block will only scroll through results page once if there is another method being called in same cell of Jupyter Notebook ####
         SCROLL_PAUSE_TIME = 3
 
-        # Get scroll height
-        
+            # Get scroll height
         last_height = self.driver.execute_script("return document.body.scrollHeight")
-
+        
         while True:
-            # Scroll down to bottom
+                # Scroll down to bottom
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            
-            # Wait to load page
+                
+                # Wait to load page
             time.sleep(SCROLL_PAUSE_TIME)
 
-            # Calculate new scroll height and compare with last scroll height
+                # Calculate new scroll height and compare with last scroll height
             new_height = self.driver.execute_script("return document.body.scrollHeight")
+              
             if new_height == last_height:
-                break
+                break  
             last_height = new_height
-        
-        return self.driver.find_element(By.XPATH, xpath) #align with 'while True' to ensure scrolling through whole page 
+            print('Loading products...')
+        return self.driver.find_element(By.XPATH, xpath) #align with while loop to ensure scrolling through whole page 
     
     def collect_page_links(self, xpath : str = ".//a"):
         '''
@@ -298,7 +298,7 @@ class Scraper:
         return self.link_list
     
     
-    def find_images(self, 
+    def get_images(self, 
                     xpath : str = '//figure[@class="product-boxshot-container"]'):
         #//figure[@class="product-boxshot-container hover-boxshot"]
         '''
@@ -310,16 +310,32 @@ class Scraper:
         '''
         self.container = self.find_container()
         list_div = self.container.find_elements(By.XPATH, '//img[@class="product-boxshot lazyloaded"]')
-        src_list = []
+        self.src_list = []
         #display progress bar whilst collecting images
         for i, product in enumerate(tqdm(list_div, desc = 'Collecting images: ')):
         #for product in list_div:
             image_container = product.find_element(By.XPATH, xpath)
             src = image_container.find_element(By.XPATH, './/img').get_attribute('srcset')
             r = src.split("1x") #split src as srcset contains two links by default
-            src_list.append(r[0]) #obtain image from 1st link only
-        return src_list
+            self.src_list.append(r[0]) #obtain image from 1st link only
+        return self.src_list
     
+    def download_images(self, path = '.'):
+        folder = input("Enter folder name: ")
+
+        try:
+            if not os.path.exists(f'{path}/{folder}'): #if folder doesn't exist
+                #os.makedirs(f'{path}/{folder}') 
+                Path(f'{path}/{folder}').mkdir(parents=True, exist_ok=True)
+            if self.src_list is None:
+                print("No images found - please run get_images() first")
+                return None
+            for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
+                r = scr.rsplit("/", 6)
+                self.client.upload_file(f'{path}/{folder}/{r[4]}_{i}.png', self.bucket, folder)
+        except FileNotFoundError:
+            print("Folder/path does not exist")
+
     def upload_images(self, src):
         '''
         This is to save images to a temporary directory and upload them to the s3 bucket 
@@ -328,6 +344,7 @@ class Scraper:
         src: str
             product image links obtained in find_images()
         '''
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             for i in range(len(src)):
                 urllib.request.urlretrieve(src[i], tmpdirname + f'/image_{i}.png')
@@ -342,6 +359,7 @@ if __name__ == "__main__": #will only run methods below if script is run directl
     scraper.navigate()
     scraper.search_bar('final fantasy') #add search keyword here
     scraper.find_container()
-    scraper.collect_page_links()
-    scraper.check_duplicates1()
-    scraper.find_images()
+    #scraper.collect_page_links()
+    #scraper.check_duplicates1()
+    scraper.get_images()
+    scraper.download_images()
