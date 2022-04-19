@@ -17,6 +17,7 @@ import boto3
 from sqlalchemy import create_engine
 import urllib.request
 import tempfile #temporary directory - to be removed after all operations have finished
+from tqdm import tqdm
 
 class Scraper:
     '''
@@ -34,27 +35,27 @@ class Scraper:
 
     #load webpage in initialiser
     def __init__(self, url: str = "https://store.eu.square-enix-games.com/en_GB/", 
-                options: Optional[ChromeOptions] = None, headless = False) -> None:  
+                headless = False):  
         
         
         options = ChromeOptions()
         
         #add arguments before creating driver
-        options.add_argument("--no-sandbox") 
-        options.binary_location = '/usr/bin/google-chrome'
+        #options.add_argument("--no-sandbox") 
+        #options.binary_location = '/usr/bin/google-chrome'
         #options.add_argument("--headless")
         
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-setuid-sandbox") 
-        options.add_argument("--remote-debugging-port=9222") 
+        #options.add_argument("--disable-dev-shm-usage")
+        #options.add_argument("--disable-setuid-sandbox") 
+        #options.add_argument("--remote-debugging-port=9222") 
          
-        options.add_argument("start-maximized")
-        options.add_argument('--disable-gpu')
+        #options.add_argument("start-maximized")
+        #options.add_argument('--disable-gpu')
         
-        options.add_argument("window-size=1920,1080") 
+        #options.add_argument("window-size=1920,1080") 
 
-        self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
-
+        #self.driver = Chrome(ChromeDriverManager().install(), options=options) #create driver
+        #self.driver = Chrome(ChromeDriverManager().install())
         try:
             if headless:
                 options.add_argument("--headless")
@@ -80,7 +81,7 @@ class Scraper:
         PORT = os.environ.get('DB_PORT')'''
 
         #to enter credentials, use '-it' between run and filename in terminal
-        DATABASE_TYPE = input("Enter Database Type: ")
+        '''DATABASE_TYPE = input("Enter Database Type: ")
         DBAPI = input("Enter DBAPI: ") #database API - API to connect Python with database
         #use AWS details to connect database - saved in Environment Variables
         HOST = input("Enter endpoint: ") #endpoint
@@ -99,7 +100,7 @@ class Scraper:
         self.client = boto3.client('s3', 
             aws_access_key_id = self.key_id,
             aws_secret_access_key = self.secret_key,
-            region_name = self.region)
+            region_name = self.region)'''
         
         
         #self.client = boto3.client('s3')
@@ -223,13 +224,13 @@ class Scraper:
         SCROLL_PAUSE_TIME = 3
 
         # Get scroll height
+        
         last_height = self.driver.execute_script("return document.body.scrollHeight")
 
         while True:
             # Scroll down to bottom
-            
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
+            
             # Wait to load page
             time.sleep(SCROLL_PAUSE_TIME)
 
@@ -239,7 +240,7 @@ class Scraper:
                 break
             last_height = new_height
         
-        return self.driver.find_element(By.XPATH, xpath)
+        return self.driver.find_element(By.XPATH, xpath) #align with 'while True' to ensure scrolling through whole page 
     
     def collect_page_links(self, xpath : str = ".//a"):
         '''
@@ -249,18 +250,18 @@ class Scraper:
         xpath: str
             locate the links in the results container which will be stored in self.link_list
         '''
-        print("Collecting page links")
         self.container = self.find_container()
         #find many elements that correspond with the XPath - they have to be direct children of the container
         #i.e. one level below the container
         time.sleep(5)
         self.list_products = self.container.find_elements(By.XPATH, xpath)
         self.link_list = []
-        for product in self.list_products: #iterate through each product
+        #display progress bar whilst collecting page links
+        for i, product in enumerate(tqdm(self.list_products, desc = 'Collecting page links: ')):
+        #for product in self.list_products: #iterate through each product
             #print(product.text) #print each product in text format
             self.link_list.append(product.get_attribute("href"))
         
-        print("Page links collected")
         return self.link_list
     
     def check_duplicates(self):
@@ -307,16 +308,16 @@ class Scraper:
         xpath: str
             locate the images in the results container and their respective links from srcset
         '''
-        print("Collecting product images")
         self.container = self.find_container()
         list_div = self.container.find_elements(By.XPATH, '//img[@class="product-boxshot lazyloaded"]')
         src_list = []
-        for product in list_div:
+        #display progress bar whilst collecting images
+        for i, product in enumerate(tqdm(list_div, desc = 'Collecting images: ')):
+        #for product in list_div:
             image_container = product.find_element(By.XPATH, xpath)
             src = image_container.find_element(By.XPATH, './/img').get_attribute('srcset')
             r = src.split("1x") #split src as srcset contains two links by default
             src_list.append(r[0]) #obtain image from 1st link only
-        print("Images collected")
         return src_list
     
     def upload_images(self, src):
