@@ -1,6 +1,6 @@
-# New_Repo
+# AiCore
 
-New_Repo
+AiCore
 Webscraping Project
 
 Milestone 1
@@ -42,3 +42,17 @@ Further methods were implemented so that some data could be scraped just from th
 Once this was all implemented and tested, any sensitive data was stored locally before pushing to the repository.
 
 This milestone was quite time consuming, but the time was worth the results achieved at each stage. A lot was learned in the process, and the steps taken ensure a lot of time is saved when scraping.
+
+Milestone 6
+
+This milestone was relatively straightforward as I needed to ensure the scraper and tests ran without issues and/or stopping, and avoid any duplicate images and data being collected and stored. As I was already sorting out the scraper in Milestone 5 due to some difficulties in obtaining the product image links, this milestone could be completed alongside other tasks.
+
+In addition, whenever the scraper was run, any previous data was overwritten which was reassuring to know since this meant there would be no duplicate data. But as a precaution, a couple of methods were implemented which would check whether any duplicate links were collected to and, if so, removed from the list before gathering additional product data.
+
+Milestone 7
+
+This milestone was an introduction to Docker once the code was refactored and tests were all passing; as with Milestone 6, the latter tasks were easily completed whilst improving code in Milestone 5.
+
+In terms of Docker, this was an interesting new software which runs similar to GitHub in that files are stored locally and pushed to a remote repository, with a major difference being that the files would be stored as images instead. Whilst the process was straightforward, there were some difficulties in ensuring the script was running properly and all the modules were included in requirements.txt for example. But once this was resolved, the next objective was being able to recall the commands required to push the docker image to a remote repository which sometimes lead to multiple containers being created (and later removed).
+
+Regardless, this was enjoyable yet challenging milestone which allowed me to learn about Docker and Cloud technology.
