@@ -8,3 +8,4 @@ requests
 webdriver-manager
 tqdm
 pathlib
+urllib3

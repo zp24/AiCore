@@ -320,19 +320,26 @@ class Scraper:
             self.src_list.append(r[0]) #obtain image from 1st link only
         return self.src_list
     
-    def download_images(self, path = '.'):
-        folder = input("Enter folder name: ")
+    def download_images(self):
+        #folder = input("Enter folder name: ")
+        for y in self.src_list:
+            r = y.rsplit("/", 6)
 
         try:
-            if not os.path.exists(f'{path}/{folder}'): #if folder doesn't exist
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
+                    #r = scr.rsplit("/", 6)
+                    urllib.request.urlretrieve(self.src_list[i], tmpdirname + f'/{r[4]}_{i}.png')
+                    self.client.upload_file(tmpdirname + f'/{r[4]}_{i}.png', self.bucket, f'/{r[4]}_{i}.png')
+            #if not os.path.exists(f'{path}/{folder}'): #if folder doesn't exist
                 #os.makedirs(f'{path}/{folder}') 
-                Path(f'{path}/{folder}').mkdir(parents=True, exist_ok=True)
+             #   Path(f'{path}/{folder}').mkdir(parents=True, exist_ok=True)
             if self.src_list is None:
                 print("No images found - please run get_images() first")
                 return None
-            for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
-                r = scr.rsplit("/", 6)
-                self.client.upload_file(f'{path}/{folder}/{r[4]}_{i}.png', self.bucket, folder)
+            #for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
+             #   r = scr.rsplit("/", 6)
+              #  self.client.upload_file(f'{path}/{folder}/{r[4]}_{i}.png', self.bucket, folder)
         except FileNotFoundError:
             print("Folder/path does not exist")
 
