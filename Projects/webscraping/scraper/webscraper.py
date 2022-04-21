@@ -326,11 +326,13 @@ class Scraper:
             r = y.rsplit("/", 6)
 
         try:
+            for y in self.src_list:
+                r = y.rsplit("/", 6)
             with tempfile.TemporaryDirectory() as tmpdirname:
                 for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
                     #r = scr.rsplit("/", 6)
                     urllib.request.urlretrieve(self.src_list[i], tmpdirname + f'/{r[4]}_{i}.png')
-                    self.client.upload_file(tmpdirname + f'/{r[4]}_{i}.png', self.bucket, f'/{r[4]}_{i}.png')
+                    self.client.upload_file(f'{tmpdirname}_image'+ f'/{r[4]}_{i}.png', self.bucket, f'/{r[4]}_{i}.png')
             #if not os.path.exists(f'{path}/{folder}'): #if folder doesn't exist
                 #os.makedirs(f'{path}/{folder}') 
              #   Path(f'{path}/{folder}').mkdir(parents=True, exist_ok=True)
@@ -355,7 +357,7 @@ class Scraper:
         with tempfile.TemporaryDirectory() as tmpdirname:
             for i in range(len(src)):
                 urllib.request.urlretrieve(src[i], tmpdirname + f'/image_{i}.png')
-                self.client.upload_file(tmpdirname + f'/image_{i}.png', self.bucket, f'image_{i}.png')
+                self.client.upload_file(f'{tmpdirname}_images' + f'/image_{i}.png', self.bucket, f'image_{i}.png')
         #//img[@class = "product-boxshot secondary-boxshot lazyloaded"]
     
     
