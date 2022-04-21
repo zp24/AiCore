@@ -36,6 +36,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .        #directory
-          file: C:\Users\Zoya\Desktop\AiCoreScripts\Projects\webscraping\Dockerfile
+          file: .\Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/square-enix:latest
