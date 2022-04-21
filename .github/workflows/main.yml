@@ -37,3 +37,4 @@ jobs:
           context: .          #directory
           file: ./Dockerfile
           push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/square-enix:latest
