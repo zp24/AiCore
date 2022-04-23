@@ -55,4 +55,14 @@ This milestone was an introduction to Docker once the code was refactored and te
 
 In terms of Docker, this was an interesting new software which runs similar to GitHub in that files are stored locally and pushed to a remote repository, with a major difference being that the files would be stored as images instead. Whilst the process was straightforward, there were some difficulties in ensuring the script was running properly and all the modules were included in requirements.txt for example. But once this was resolved, the next objective was being able to recall the commands required to push the docker image to a remote repository which sometimes lead to multiple containers being created (and later removed).
 
-Regardless, this was enjoyable yet challenging milestone which allowed me to learn about Docker and Cloud technology.
+Regardless, this was an enjoyable yet challenging milestone which allowed me to learn about Docker and Cloud technology.
+
+Milestone 8
+
+This milestone focused on monitoring the scraper via a Prometheus container, hardware metrics and Docker container, thus requiring Docker and the EC2 instance to be linked to Prometheus and Prometheus being linked to Grafana. 
+
+It was important that the files were created in their correct locations to avoid any errors, particularly when linking Docker and EC2 instance to Prometheus, something which I realised when the daemon.json file was not located in the correct path despite all the code within the file being correct.
+
+Once resolved, it was a straightforward procedure to link Prometheus to Grafana and monitor the metrics.
+
+A relatively simple milestone to complete, but not without its issues which could have been easily avoided the first time around.
