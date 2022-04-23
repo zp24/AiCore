@@ -37,6 +37,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: Projects/webscraping      #directory
-          file: /Dockerfile
+          file: Projects/webscraping/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/square-enix:latest
