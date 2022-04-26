@@ -9,7 +9,6 @@ webdriver-manager
 tqdm
 pathlib
 urllib3
-shutil
 uuid
 json
 JSONEncoder
