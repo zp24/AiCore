@@ -19,6 +19,7 @@ from sqlalchemy import create_engine
 import urllib.request
 from tqdm import tqdm
 from pathlib import Path
+import tempfile
 import uuid #universally unique id
 from uuid import UUID
 import json
@@ -51,6 +52,10 @@ class Scraper:
         PASSWORD = input("Enter your password: ")
         DATABASE = input("Enter Database: ")
         PORT = input("Enter port: ")
+        
+        self.client = boto3.client('s3')
+        
+        #self.bucket = os.environ.get('DB_BUCKET')
 
         '''DATABASE_TYPE = os.environ.get('DB_DATABASE_TYPE')
         DBAPI = os.environ.get('DB_DBAPI') #database API - API to connect Python with database
@@ -105,9 +110,9 @@ class Scraper:
 
         self.driver.maximize_window() #maximise window upon loading webpage
         
-        self.client = boto3.client('s3')
+        #self.client = boto3.client('s3')
         #self.bucket = os.environ.get('DB_BUCKET')
-        self.bucket = input("Enter bucket name: ")
+        #self.bucket = input("Enter bucket name: ")
 
     #click accept cookies button on webpage
     def accept_cookies(self, xpath: str = '//*[@id="onetrust-accept-btn-handler"]'): 
@@ -336,43 +341,26 @@ class Scraper:
         return self.product_dict
     
     def download_product_info(self): #save product_dict in json file and upload to s3 bucket
-       path = "../scraper_data"
        product_file = f"se_product_data_{self.text}"
-       create_file = os.path.join(path, product_file+".json") #add file type here
+       create_file = os.path.join(product_file+".json") #add file type here
 
-       #Dealing with no UUID serialization support in json
-       JSONEncoder_olddefault = JSONEncoder.default
-       def JSONEncoder_newdefault(self, o):
-            if isinstance(o, UUID): return str(o)
-            return JSONEncoder_olddefault(self, o)
-       JSONEncoder.default = JSONEncoder_newdefault
-
-       try: #create raw_data folder in current directory - check if folder already exists
-            if not os.path.exists(path): #if folder doesn't exist
-                print(f"Creating {path} - will be deleted once process is complete")
-                os.mkdir(path) 
-                time.sleep(5)
-                with open(create_file, "w") as fp: #specify path here - create data.json file
+       try:
+            with open(create_file, "w") as fp: #specify path here - create data.json file
+                    #Dealing with no UUID serialization support in json
+                    JSONEncoder_olddefault = JSONEncoder.default
+                    def JSONEncoder_newdefault(self, o):
+                            if isinstance(o, UUID): return str(o)
+                            return JSONEncoder_olddefault(self, o)
+                    JSONEncoder.default = JSONEncoder_newdefault
+                    
                     json.dump(self.product_dict, fp,  indent=4)
-
-            elif os.path.exists(path): #if folder already exists
-                with open(create_file, "w") as fp: 
-                    json.dump(self.product_dict, fp,  indent=4)
-       except FileExistsError:
-            print("Already exists")
+                    self.client.upload_file(f"se_product_data_{self.text}.json", self.bucket, f"se_product_data_{self.text}.json") #json file will be added to bucket
+            #time.sleep(3)
+            #os.remove(create_file) #remove json file from cwd once uploaded to s3 bucket
+       except RuntimeError:
+            print("Not supported - file not uploaded to bucket")
        
-       time.sleep(5)
-       
-       source = os.listdir(path)
-       for file in source:
-          with open(f'{path}/{file}', "rb") as f: #ensures each file is looked at individually 
-            self.client.upload_fileobj(f, self.bucket, file) #json file will be added to bucket
-            print(f"Data uploaded to {self.bucket} as json file")
-       time.sleep(3)
-       shutil.rmtree(path)
-       
-       #confirm directory has been removed
-       return "%s and all its content have been removed successfully" %path 
+       return f"Data uploaded to {self.bucket} as json file"
     
     def get_images(self, 
                     xpath : str = '//figure[@class="product-boxshot-container"]', 
@@ -400,7 +388,7 @@ class Scraper:
     def download_images(self):
         #folder = input("Enter folder name: ")
        path = f"scraper_image_data_{self.text}"
-       self.client.put_object(Bucket=self.bucket, Key=(path+'/'))
+       #self.client.put_object(Bucket=self.bucket, Key=(path+'/'))
        for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):  
             scr = f"{self.text}_image_{i}.png"
                 
@@ -409,9 +397,8 @@ class Scraper:
             else: 
                     urllib.request.urlretrieve(self.src_list[i], scr)
                     self.client.upload_file(scr, self.bucket, f'{path}/{scr}')
-                    time.sleep(1.5)
-                    os.remove(scr)
-           
+                    #time.sleep(1)
+                    #os.remove(scr) #remove images from cwd once uploaded to s3 bucket
        if self.src_list is None:
                 print("No images found - please run get_images() first")
                 return None
