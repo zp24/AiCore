@@ -9,3 +9,9 @@ webdriver-manager
 tqdm
 pathlib
 urllib3
+os
+os.path
+shutil
+uuid
+json
+JSONEncoder

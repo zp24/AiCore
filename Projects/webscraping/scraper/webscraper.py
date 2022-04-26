@@ -1,7 +1,7 @@
 '''
 This is a docstring for the module
 '''
-import os
+import os, os.path, shutil
 import selenium
 from selenium import webdriver
 from selenium.webdriver import Chrome
@@ -17,9 +17,12 @@ import time
 import boto3
 from sqlalchemy import create_engine
 import urllib.request
-import tempfile #temporary directory - to be removed after all operations have finished
 from tqdm import tqdm
 from pathlib import Path
+import uuid #universally unique id
+from uuid import UUID
+import json
+from json import JSONEncoder
 
 class Scraper:
     '''
@@ -102,9 +105,9 @@ class Scraper:
 
         self.driver.maximize_window() #maximise window upon loading webpage
         
-        #self.client = boto3.client('s3')
+        self.client = boto3.client('s3')
         #self.bucket = os.environ.get('DB_BUCKET')
-        #self.bucket = input("Enter bucket name: ")
+        self.bucket = input("Enter bucket name: ")
 
     #click accept cookies button on webpage
     def accept_cookies(self, xpath: str = '//*[@id="onetrust-accept-btn-handler"]'): 
@@ -131,7 +134,7 @@ class Scraper:
     def search_bar(self, text, xpath: str = './/a[@id="search-button"]', 
                     xpath1: str = '//*[@id="search-form-wrapper"]/form/div/input',
                     xpath2: str = './/button[@class="btn search-button-submit"]'): 
-        self.text = text
+        
         '''
         Look for and write something in search bar
 
@@ -172,6 +175,7 @@ class Scraper:
         
         #input keywords to search
         try:
+            self.text = text
             self.search = self.driver.find_element(By.XPATH, xpath1)
             self.search.send_keys(self.text)
             print(f"Search keywords entered - '{self.text}'")
@@ -187,7 +191,7 @@ class Scraper:
         except NoSuchElementException:
             print("Cannot submit search")
 
-        return self.text #output to be returned from function
+        return self.text, self.driver.find_element(By.XPATH, '//span[@class="counter-number"]').text, "products in this category"
         
     #navigate tabs - change id for games, merchandise or preorders
     def navigate(self, xpath: str = '//*[@id="merchandise"]'): 
@@ -239,10 +243,11 @@ class Scraper:
             if new_height == last_height:
                 break  
             last_height = new_height
-            print('Loading products...')
+        print('Loading products...')
         return self.driver.find_element(By.XPATH, xpath) #align with while loop to ensure scrolling through whole page 
     
     def collect_page_links(self, xpath : str = ".//a"):
+
         '''
         This is to find links in the search results container 
         Parameters
@@ -297,10 +302,81 @@ class Scraper:
 
         return self.link_list
     
+    def get_product_info(self, xpath1 : str = '//h3[@class="product-title"]', 
+                        xpath2 : str = '//span[@class="price"]', xpath3 : str = './/img', 
+                        xpath4 : str = './/a'):
+
+        self.container = self.find_container()
+        self.product_dict = {"product_link": [], "product_name": [], "price": [], "product_id": [], "product_uuid": []}
+
+        self.product_name = self.container.find_elements(By.XPATH, xpath1)
+        self.product_price = self.container.find_elements(By.XPATH, xpath2)
+        self.image_link = self.container.find_elements(By.XPATH, xpath3)
+        self.image_list = []
+        
+        self.product_link = self.container.find_elements(By.XPATH, xpath4)
+        self.link_list = []
+
+        #display progress bar whilst collecting product info
+        for i, link in enumerate(tqdm(self.product_link, desc = 'Collecting page links: ')):
+            product_link = link.get_attribute("href")
+            self.link_list.append(product_link)
+            self.product_dict["product_link"].append(product_link)
+            self.z = product_link.rsplit("/", 6)
+            self.product_dict["product_id"].append(self.z[5])
+
+        for i, product in enumerate(tqdm(self.product_name, desc = 'Collecting product names: ')): 
+            self.product_uuid = uuid.uuid4()
+            self.product_dict["product_name"].append(product.text) 
+            self.product_dict["product_uuid"].append(self.product_uuid)
+
+        for i, price in enumerate(tqdm(self.product_price, desc = 'Collecting product prices: ')):
+            self.product_dict["price"].append(price.text) 
+            
+        return self.product_dict
+    
+    def download_product_info(self): #save product_dict in json file and upload to s3 bucket
+       path = "../scraper_data"
+       product_file = f"se_product_data_{self.text}"
+       create_file = os.path.join(path, product_file+".json") #add file type here
+
+       #Dealing with no UUID serialization support in json
+       JSONEncoder_olddefault = JSONEncoder.default
+       def JSONEncoder_newdefault(self, o):
+            if isinstance(o, UUID): return str(o)
+            return JSONEncoder_olddefault(self, o)
+       JSONEncoder.default = JSONEncoder_newdefault
+
+       try: #create raw_data folder in current directory - check if folder already exists
+            if not os.path.exists(path): #if folder doesn't exist
+                print(f"Creating {path} - will be deleted once process is complete")
+                os.mkdir(path) 
+                time.sleep(5)
+                with open(create_file, "w") as fp: #specify path here - create data.json file
+                    json.dump(self.product_dict, fp,  indent=4)
+
+            elif os.path.exists(path): #if folder already exists
+                with open(create_file, "w") as fp: 
+                    json.dump(self.product_dict, fp,  indent=4)
+       except FileExistsError:
+            print("Already exists")
+       
+       time.sleep(5)
+       
+       source = os.listdir(path)
+       for file in source:
+          with open(f'{path}/{file}', "rb") as f: #ensures each file is looked at individually 
+            self.client.upload_fileobj(f, self.bucket, file) #json file will be added to bucket
+            print(f"Data uploaded to {self.bucket} as json file")
+       time.sleep(3)
+       shutil.rmtree(path)
+       
+       #confirm directory has been removed
+       return "%s and all its content have been removed successfully" %path 
     
     def get_images(self, 
-                    xpath : str = '//figure[@class="product-boxshot-container"]'):
-        #//figure[@class="product-boxshot-container hover-boxshot"]
+                    xpath : str = '//figure[@class="product-boxshot-container"]', 
+                    xpath2 : str = 'figure[@class="product-boxshot-container hover-boxshot"]'):
         '''
         This is to find the product images in the search results container 
         Parameters
@@ -308,67 +384,48 @@ class Scraper:
         xpath: str
             locate the images in the results container and their respective links from srcset
         '''
-        self.container = self.find_container()
-        list_div = self.container.find_elements(By.XPATH, '//img[@class="product-boxshot lazyloaded"]')
+        self.image_link = self.container.find_elements(By.XPATH, './/img')
         self.src_list = []
         #display progress bar whilst collecting images
-        for i, product in enumerate(tqdm(list_div, desc = 'Collecting images: ')):
-        #for product in list_div:
-            image_container = product.find_element(By.XPATH, xpath)
-            src = image_container.find_element(By.XPATH, './/img').get_attribute('srcset')
-            r = src.split("1x") #split src as srcset contains two links by default
-            self.src_list.append(r[0]) #obtain image from 1st link only
+        for i, link in enumerate(tqdm(self.image_link, desc = 'Collecting image links: ')):
+            y = link.get_attribute('srcset')
+            s = y.split("1x")
+
+            if ".jpg" not in s[0]:
+                    pass
+            else:
+                self.src_list.append(s[0]) #obtain image from 1st link only
         return self.src_list
     
     def download_images(self):
         #folder = input("Enter folder name: ")
-        for y in self.src_list:
-            r = y.rsplit("/", 6)
-
-        try:
-            for y in self.src_list:
-                r = y.rsplit("/", 6)
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
-                    #r = scr.rsplit("/", 6)
-                    urllib.request.urlretrieve(self.src_list[i], tmpdirname + f'/{r[4]}_{i}.png')
-                    self.client.upload_file(f'{tmpdirname}_image'+ f'/{r[4]}_{i}.png', self.bucket, f'/{r[4]}_{i}.png')
-            #if not os.path.exists(f'{path}/{folder}'): #if folder doesn't exist
-                #os.makedirs(f'{path}/{folder}') 
-             #   Path(f'{path}/{folder}').mkdir(parents=True, exist_ok=True)
-            if self.src_list is None:
+       path = f"scraper_image_data_{self.text}"
+       self.client.put_object(Bucket=self.bucket, Key=(path+'/'))
+       for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):  
+            scr = f"{self.text}_image_{i}.png"
+                
+            if ".jpg" not in self.src_list[i]:
+                    pass
+            else: 
+                    urllib.request.urlretrieve(self.src_list[i], scr)
+                    self.client.upload_file(scr, self.bucket, f'{path}/{scr}')
+                    time.sleep(1.5)
+                    os.remove(scr)
+           
+       if self.src_list is None:
                 print("No images found - please run get_images() first")
                 return None
-            #for i, scr in enumerate(tqdm(self.src_list, desc = "Downloading images")):
-             #   r = scr.rsplit("/", 6)
-              #  self.client.upload_file(f'{path}/{folder}/{r[4]}_{i}.png', self.bucket, folder)
-        except FileNotFoundError:
-            print("Folder/path does not exist")
-
-    def upload_images(self, src):
-        '''
-        This is to save images to a temporary directory and upload them to the s3 bucket 
-        Parameters
-        -------
-        src: str
-            product image links obtained in find_images()
-        '''
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            for i in range(len(src)):
-                urllib.request.urlretrieve(src[i], tmpdirname + f'/image_{i}.png')
-                self.client.upload_file(f'{tmpdirname}_images' + f'/image_{i}.png', self.bucket, f'image_{i}.png')
-        #//img[@class = "product-boxshot secondary-boxshot lazyloaded"]
-    
     
 
 if __name__ == "__main__": #will only run methods below if script is run directly
     scraper = Scraper() #call scraper class
     scraper.accept_cookies()
     scraper.navigate()
-    scraper.search_bar('final fantasy') #add search keyword here
+    scraper.search_bar(input("Enter search keywords: ")) #input or add search keyword here
     scraper.find_container()
     #scraper.collect_page_links()
+    scraper.get_product_info()
+    scraper.download_product_info()
     #scraper.check_duplicates1()
     scraper.get_images()
     scraper.download_images()
