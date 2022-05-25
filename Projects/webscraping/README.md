@@ -66,3 +66,10 @@ It was important that the files were created in their correct locations to avoid
 Once resolved, it was a straightforward procedure to link Prometheus to Grafana and monitor the metrics.
 
 A relatively simple milestone to complete, but not without its issues which could have been easily avoided the first time around.
+
+
+Milestone 9
+
+The final project milestone was one which would result in a more automated process regarding the EC2 instance and Docker - it required pushing the Docker container to the remote repository whenever a commit was made to the GitHub repository, and then scheduling times at which the Docker container would run/stop on the EC2 instance.
+
+This milestone made me realise (along with Milestone 8 as an example) how much more streamlined a particular process can be so long as steps are taken and completed correctly, especially when sensitive information is being used, such as GitHub and AWS credentials. It definitely makes previous steps in building the webscraper for example a lot easier, in that any updates to the webscraper would automatically be implemented into the Docker container which will subsequently be pulled by the EC2 instance when the scheduled time in the cron job is reached.
